@@ -1,0 +1,225 @@
+title EA Initialization Phase 2 - CExpert::InitIndicators ( )
+
+participant "//**inputs**// for expert//" as Expert
+participant CExpertBase
+participant CExpert
+participant CExpertSignal
+
+participant "//CExpertSignal//\n\n**CSignalAC**\nCSignalMA\nCSignalAMA\nCSignalAO\nCSignalMACD\nCSignalRSI\n..." as CUserSignal
+participant "Accelerator oscillator" as CiAC
+#participant "//CExpertTrailing//\n\n**CTrailingPSAR**\nCTrailingFixedPips\nCTrailingMA\nCTrailingNone\n. . ." as CUserTrailing
+#participant "//CExpertMoney//\n\n**CMoneyFixedLot**\nCMoneyFixedMargin\nCMoneyFixedRisk\nCMoneySizedOptimized\n. . ." as CUserMoney
+
+note over Expert://\// Global expert object\nCExpert **ExtExpert**;
+
+note over Expert:<size:16>**OnInit ( )**
+
+note over Expert:<align:center><color:#darkgray>++**<< include >>\nEA Initialization Phase 1
+
+
+note over Expert:<align:center>**Tuning of all\nnecessary indicators**</align>
+Expert->CExpert:ExtExpert.InitIndicators ( )
+activate CExpert
+CExpert->CExpert:CIndicators  * **indicators_ptr** = GetPointer ( m_indicators )
+CExpert->CExpertSignal:m_used_series |= m_signal.UsedSeries ( )
+activate CExpertSignal
+
+CExpertSignal-->CExpert:return ( 0 )  if ( m_other_symbol || m_other_period )
+CExpertSignal->CExpertSignal:total = m_filters.Total ( )
+loop  for ( int i = 0; i < total; i ++ ) 
+CExpertSignal->CExpertSignal:CExpertSignal * **filter** = m_filters.At ( i )
+CExpertSignal->CExpertSignal:m_used_series |= filter.UsedSeries ( )
+end 
+
+parallel 
+CExpertSignal-->CExpert:**return ( m_used_series )**
+deactivate CExpertSignal
+
+CExpert->CExpertBase:<align:center>m_used_series |= m_trailing.UsedSeries ( )\nm_used_series |= m_money.UsedSeries ( )\n\n++//int CExpertBase::UsedSeries(void) const
+parallel off
+
+
+activate CExpertBase
+CExpert<--CExpertBase:if ( m_other_symbol || m_other_period ) return ( 0 );\nreturn ( m_used_series )
+#CExpert<--CExpertBase:
+deactivate CExpertBase
+
+CExpert->CExpertBase:CExpertBase::InitIndicators ( **indicators_ptr** ) )
+activate CExpertBase
+note over CExpertBase:bool CExpertBase::InitIndicators ( CIndicators ***indicators** )
+CExpertBase->CExpertBase://ValidationSettings ( )\n**for compatibility only !**
+CExpertBase-->CExpert://return ( false )
+CExpertBase->CExpertBase:m_init_phase != INIT_PHASE_VALIDATION
+CExpertBase-->CExpert:return ( false )
+CExpertBase->CExpertBase:NOT m_other_symbol && NOT m_other_period
+CExpertBase-->CExpert:return ( true )
+note over CExpertBase://check pointers\n if(m_symbol==NULL)\n      return(false);\n if(indicators==NULL)\n      return(false);
+
+CExpertBase->CExpertBase:<size:14>if ( IS_OPEN_SERIES_USAGE )</size>\n		InitOpen ( **indicators** )
+activate CExpertBase
+CExpertBase->CExpertBase:<size:14>**m_open** = new CiOpen</size>\nindicators.Add ( **m_open** )\n**m_open**.Create ( m_symbol.Name(), m_period )
+deactivate CExpertBase
+CExpertBase-->CExpert:return false if ( FAIL )
+
+CExpertBase->CExpertBase:<size:14>if ( IS_HIGH_SERIES_USAGE )</size>\n		InitHigh ( **indicators** )
+activate CExpertBase
+CExpertBase->CExpertBase:<size:14>**m_high** = new CiHigh</size>\nindicators.Add ( **m_high** )\n**m_high**.Create ( m_symbol.Name(), m_period )
+deactivate CExpertBase
+CExpertBase-->CExpert:return false if ( FAIL )
+
+CExpertBase->CExpertBase:<size:14>if ( IS_LOW_SERIES_USAGE )</size>\n		InitLow ( **indicators** )
+activate CExpertBase
+CExpertBase->CExpertBase:<size:14>**m_low** = new CiLow</size>\nindicators.Add ( **m_low** )\n**m_low**.Create ( m_symbol.Name(), m_period )
+deactivate CExpertBase
+CExpertBase-->CExpert:return false if ( FAIL )
+
+CExpertBase->CExpertBase:<size:14>if ( IS_CLOSE_SERIES_USAGE )</size>\n		InitClose ( **indicators** )
+activate CExpertBase
+CExpertBase->CExpertBase:<size:14>**m_close** = new CiClose</size>\nindicators.Add ( **m_close** )\n**m_close**.Create ( m_symbol.Name(), m_period )
+deactivate CExpertBase
+CExpertBase-->CExpert:return false if ( FAIL )
+
+CExpertBase->CExpertBase:<size:14>if ( IS_SPREAD_SERIES_USAGE )</size>\n		InitSpread ( **indicators** )
+activate CExpertBase
+CExpertBase->CExpertBase:<size:14>**m_spread** = new CiSpread</size>\nindicators.Add ( **m_spread** )\n**m_spread**.Create ( m_symbol.Name(), m_period )
+deactivate CExpertBase
+ 
+deactivate CExpertBase
+CExpertBase-->CExpert:return false if ( FAIL )
+
+CExpertBase->CExpertBase:<size:14>if ( IS_TIME_SERIES_USAGE )</size>\n		InitTime ( **indicators** )
+activate CExpertBase
+CExpertBase->CExpertBase:<size:14>**m_time** = new CiTime</size>\nindicators.Add ( **m_time** )\n**m_time**.Create ( m_symbol.Name(), m_period )
+deactivate CExpertBase
+CExpertBase-->CExpert:return false if ( FAIL )
+
+CExpertBase->CExpertBase:<size:14>if ( IS_TICK_VOLUME_SERIES_USAGE )</size>\n		InitTickVolume ( **indicators** )
+activate CExpertBase
+CExpertBase->CExpertBase:<size:14>**m_tick_volume** = new CiTickVolume</size>\nindicators.Add ( **m_tick_volume** )\n**m_tick_volume**.Create ( m_symbol.Name(), m_period ) 
+deactivate CExpertBase
+CExpertBase-->CExpert:return false if ( FAIL )
+
+CExpertBase->CExpertBase:<size:14>if ( IS_REAL_VOLUME_SERIES_USAGE )</size>\n		InitRealVolume ( **indicators** )
+activate CExpertBase
+CExpertBase->CExpertBase:<size:14>**m_real_volume** = new CiRealVolume</size>\nindicators.Add ( **m_real_volume** )\n**m_real_volume**.Create ( m_symbol.Name(), m_period )
+deactivate CExpertBase
+CExpertBase-->CExpert:return false if ( FAIL )
+
+CExpert-->Expert:return ( false ) if FAIL
+CExpertBase->CExpertBase:**m_init_phase** = INIT_PHASE_COMPLETE
+
+
+parallel
+CExpertBase-->CExpert:return ( true )
+deactivate CExpertBase
+
+CExpert->CExpertSignal:m_signal.SetPriceSeries ( **m_open, m_high, m_low, m_close** )
+parallel off
+
+
+activate CExpertSignal 
+note over CExpertSignal://call the CExpertBase method
+CExpertSignal->CExpertBase:bool CExpertBase::SetPriceSeries ( CiOpen * open, CiHigh * high, CiLow * low, CiClose * close )
+deactivate CExpertSignal
+activate CExpertBase
+note over CExpertBase://check the initialization phase + \ncheck pointers 
+CExpertBase->CExpertBase:m_open = open;\nm_high  = high;\nm_low  = low;\nm_close = close;
+
+parallel
+CExpertBase-->CExpert:return ( true )
+deactivate CExpertBase
+
+CExpert->CExpertSignal:m_signal.SetOtherSeries ( **m_spread, m_time, m_tick_volume, m_real_volume** )
+parallel off
+
+activate CExpertSignal 
+note over CExpertSignal://call the CExpertBase method
+CExpertSignal->CExpertBase:bool CExpertBase::SetOtherSeries ( CiSpread * spread, CiTime  * time, CiTickVolume * tick_volume, CiRealVolume * real_volume )
+deactivate CExpertSignal
+activate CExpertBase
+note over CExpertBase://check the initialization phase + \ncheck pointers 
+CExpertBase->CExpertBase:m_spread = spread;\nm_time = time;\nm_tick_volume = tick_volume;\nm_real_volume = real_volume;
+
+parallel
+CExpertBase-->CExpert:return ( true )
+deactivate CExpertBase
+
+CExpert->CUserSignal:m_signal.InitIndicators ( indicators_ptr )
+parallel off
+
+
+activate CUserSignal
+space 
+CUserSignal->CExpertSignal:CExpertSignal::InitIndicators ( indicators )
+activate CExpertSignal
+CExpertSignal->CExpertSignal:CExpertSignal *** filter**
+
+loop  x = 0; x < ::m_filters.Total ( ); x ++  
+    CExpertSignal->CExpertSignal:filter = :: m_filters.At ( x )\nm_used_series |= filter.UsedSeries ( )
+end
+CExpertSignal->CExpertBase:CExpertBase::InitIndicators ( **indicators_ptr** ) )
+	note over CExpertBase: todo vedi sopra
+    CExpertBase-->CExpertSignal:todo
+loop  x = 0; x < ::m_filters.Total ( ); x ++  
+    CExpertSignal->CExpertSignal:filter = m_filters.At ( i )
+    CExpertSignal->CExpertSignal:filter.SetPriceSeries ( m_open, m_high, m_low, m_close )
+    activate CExpertSignal
+    note over CExpertSignal://call the CExpertBase method
+    CExpertSignal->CExpertBase:bool CExpertBase::SetPriceSeries ( CiOpen * open, CiHigh * high, CiLow * low, CiClose * close )
+	deactivate CExpertSignal
+	activate CExpertBase
+	note over CExpertBase://check the initialization phase + \ncheck pointers 
+CExpertBase->CExpertBase:m_open = open;\nm_high  = high;\nm_low  = low;\nm_close = close;
+	CExpertBase-->CExpertSignal:return ( true )
+	deactivate CExpertBase
+    
+    CExpertSignal->CExpertSignal:filter.SetOtherSeries ( m_spread, m_time, m_tick_volume, m_real_volume )
+    activate CExpertSignal
+    note over CExpertSignal://call the CExpertBase method
+	CExpertSignal->CExpertBase:bool 		CExpertBase::SetOtherSeries ( CiSpread * spread, CiTime  * time, CiTickVolume * tick_volume, CiRealVolume * real_volume )
+	deactivate CExpertSignal
+	activate CExpertBase
+	note over CExpertBase://check the initialization phase + \ncheck pointers 
+	CExpertBase->CExpertBase:m_spread = spread;\nm_time = time;\nm_tick_volume = tick_volume;\nm_real_volume = real_volume;
+    
+    parallel
+	CExpertBase-->CExpertSignal:return ( true )
+	deactivate CExpertBase
+    
+    CExpertSignal->CUserSignal:filter.InitIndicators ( indicators )
+    parallel off
+    
+    note over CUserSignal:es.\nfilter of class **CSignalAC**
+	CUserSignal->CUserSignal:<size:16>**InitAC ( indicators )
+	activate CUserSignal
+	CUserSignal->CUserSignal:<size:16>indicators.Add ( GetPointer ( :: m_ac )
+	CUserSignal->CiAC:<size:16>:: m_ac.Create ( ... )
+    activate CiAC
+    CiAC->CiAC:SetSymbolPeriod ( symbol, period )
+	#activate CiAC
+	CiAC->CiAC:<size:16>**m_handle = iATR**</size>\n (symbol, period, ma_period ) 
+    CiAC->CiAC:**Initialize** ( symbol, period, ma_period )
+    activate CiAC
+    CiAC->CiAC:<size:16>**CreateBuffers**</size>\n( symbol, period, numbuf )
+    activate CiAC
+    loop numbuf
+    	CiAC->CiAC:result & = \n<size:16>Add ( new **CIndicatorBuffer** ) 
+    end
+    CiAC-->CiAC:return result
+    deactivate CiAC
+    CiAC->CiAC:<size:16>**( CIndicatorBuffer * ) At ( 0 ) )**</size>\n.Name ( "MAIN_LINE" )
+    deactivate CiAC
+    CiAC-->CUserSignal:return
+	deactivate CiAC
+    deactivate CUserSignal
+    deactivate CExpertSignal
+end  
+
+
+
+deactivate CUserSignal:
+
+
+deactivate CExpertSignal
+deactivate CUserSignal
+

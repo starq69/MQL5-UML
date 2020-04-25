@@ -1,0 +1,233 @@
+title Expert Initialization : OnInit() event
+
+participant "//**inputs**// for expert//" as Expert
+participant CExpert
+participant CExpertSignal
+participant "//CExpertSignal//\n\n**CSignalAC**\nCSignalMA\nCSignalAMA\nCSignalAO\nCSignalMACD\nCSignalRSI\n..." as CUserSignal
+participant "//CExpertTrailing//\n\n**CTrailingPSAR**\nCTrailingFixedPips\nCTrailingMA\nCTrailingNone\n. . ." as CUserTrailing
+participant "//CExpertMoney//\n\n**CMoneyFixedLot**\nCMoneyFixedMargin\nCMoneyFixedRisk\nCMoneySizedOptimized\n. . ." as CUserMoney
+
+note over Expert://\// Global expert object\nCExpert **ExtExpert**;
+
+note over Expert:<size:16>**OnInit ( )**
+
+note over CExpert::: m_init_phase = INIT_PHASE_FIRST\n//\//start phase (only Init(...) can be called)
+Expert->CExpert:**ExtExpert**.init ( Symbol ( ), Period ( ), ...//**inputs**//... )
+activate CExpert
+note over CExpert:<size:12>**initialize common info**</size>\n\n:: m_symbol = new CSymbolInfo\n:: m_symbol.Name ( symbol )\n:: m_period = period\n:: m_every_tick = every_tick\n:: m_magic = magic\nSetMarginMode ( )\nTimeframeAdd ( ... )
+#CExpert->CExpert:initialize common info
+
+#note right of CExpert:<size:14>pointers re-initialization</size>\n\n:: m_trade\n:: m_signal\n:: m_trailing\n:: m_money</size>
+
+CExpert->CExpert:InitTrade / Signal / Trailing / Money / Parameters ( )\n 
+activate CExpert 
+note over CExpert:<size:12>**pointers re-initialization**</size>\n\n:: m_trade\n:: m_signal\n:: m_trailing\n:: m_money</size>
+deactivate CExpert
+
+CExpert->CExpert:PrepareHistoryDate ( )\nHistoryPoint ( )
+activate CExpert 
+space
+deactivate CExpert
+
+#CExpert->CExpert:HistoryPoint ( )
+#activate CExpert 
+#space
+#deactivate CExpert
+Expert<--CExpert:True ( m_init_phase = INIT_PHASE_TUNING ) or \nFalse
+ 
+deactivate CExpert
+note over Expert:**Creating signal
+Expert->*CExpertSignal:<< create >> **signal**
+#destroysilent CExpertSignal
+
+Expert->CExpert:**ExtExpert**.initSignal ( * **signal** )
+activate CExpert
+#CExpert->CExpertSignal::: m_signal = new ( )
+
+CExpert->CExpert::: m_signal = **signal**
+
+CExpert ->CExpertSignal::: m_signal.init ( GetPointer ( m_symbol ), m_period, ...)
+activate CExpertSignal
+note over CExpertSignal://virtual bool\nCExpertBase::Init ( ... )//
+CExpertSignal-->CExpert:True ( :: m_init_phase = INIT_PHASE_TUNING ) or False
+deactivate CExpertSignal
+
+CExpert<->CExpertSignal::: m_signal.EveryTick ( m_every_tick )\n:: m_signal.Magic  ( m_magic )
+activate CExpertSignal
+note over CExpertSignal://void CExpertBase::EveryTick ( . )\nvoid CExpertBase::Magic ( . )//
+deactivate CExpertSignal
+
+CExpert-->Expert:True or False
+deactivate CExpert
+Expert->CExpertSignal:**signal**.ThresholdOpen / Close / PriceLevel / StopLevel / TakeLevel / Expiration ( **inputs** )
+activate CExpertSignal
+note over CExpertSignal:methods of setting adjustable parameters
+deactivate CExpertSignal
+
+note over Expert:<align:center>**Creating filter\n\n[ filter_0 ]**</align>
+
+Expert->*CUserSignal:<< create >>\nes.\nCSignalAC *** filter_0** = new CSignalAC
+
+Expert->CExpertSignal:signal.AddFilter ( **filter_0** )
+activate CExpertSignal
+CExpertSignal->CUserSignal:<**filter_0**>.init ( :: m_symbol, :: m_period, ... )
+activate CUserSignal
+note over CUserSignal://virtual bool\nCExpertBase::Init ( CSymbolInfo *symbol, ... )//
+deactivate CUserSignal
+#space
+note over CExpertSignal:add the filter to the CArrayObj array of filters
+CExpertSignal->CExpertSignal::: m_filters.Add ( <**filter_0**> )
+activate CExpertSignal
+note over CExpertSignal://bool CArrayObj::Add ( CObject * element )//
+deactivate CExpertSignal
+CExpertSignal<->CExpertSignal::: m_signal.EveryTick ( m_every_tick )\n:: m_signal.Magic  ( m_magic )
+CExpertSignal-->Expert:True or False
+deactivate CExpertSignal
+note over Expert:set **filter_0** parameters
+Expert->CUserSignal:es.:\n\// Accelerator Oscillator **Weight** [0...1.0]\n**input** double **Signal_AC_Weight** = 1.0; 
+
+activate CUserSignal
+note over CUserSignal:es.:\n<**filter_0**>.Weight ( **Signal_AC_Weight** )
+deactivate CUserSignal
+
+note over Expert:**Creation of trailing object**
+
+Expert->*CUserTrailing:<< create >>\nes.\nCTrailingPSAR ** * trailing** = new CTrailingPSAR
+
+Expert->CExpert:**ExtExpert**.InitTrailing ( *** trailing** )
+activate CExpert
+
+#CExpert->CUserTrailing::: m_trailing = new ( )
+
+CExpert->CExpert::: m_trailing = **trailing**
+
+CExpert ->CUserTrailing::: m_trailing.init ( GetPointer ( m_symbol ), m_period, ...)
+activate CUserTrailing
+note over CUserTrailing://virtual bool\nCExpertBase::Init ( CSymbolInfo *symbol, ... )//
+CUserTrailing-->CExpert:True ( :: m_init_phase = INIT_PHASE_TUNING ) or False
+deactivate CUserTrailing
+#//bool CExpertBase::Init ( ... )//
+
+CExpert ->CUserTrailing::: m_trailing.EveryTick ( m_every_tick )\n:: m_trailing.Magic  ( m_magic )
+activate CUserTrailing
+note over CUserTrailing://void CExpertBase::EveryTick ( . )\nvoid CExpertBase::Magic ( . )//
+deactivate CUserTrailing
+CExpert-->Expert:True or False
+deactivate CExpert
+
+Expert->CUserTrailing://set ::trailing parameters es.//\n**input** double **Trailing_ParabolicSAR_Step** = 0.02;\n**input** double **Trailing_ParabolicSAR_Maximum** = 0.2;
+activate CUserTrailing
+note over CUserTrailing:methods of setting adjustable parameters\n\n**trailing**.Step ( **Trailing_ParabolicSAR_Step** )\n**trailing**.Maximum ( **Trailing_ParabolicSAR_Maximum** )
+deactivate CUserTrailing
+
+note over Expert:**Creation of money object**
+Expert->*CUserMoney:<< create >>\nes.\nCMoneyFixedLot *** money** = new CMoneyFixedLot
+
+Expert->CExpert:**ExtExpert**.InitMoney ( *** money** )
+activate CExpert
+#CExpert ->CUserMoney::: m_money = new ( )
+
+CExpert->CExpert::: m_money = **money**
+
+CExpert ->CUserMoney::: m_money.Init ( GetPointer ( m_symbol ), m_period, ...)
+activate CUserMoney
+note over CUserMoney://virtual bool\nCExpertBase::Init ( CSymbolInfo *symbol, ... )//
+CUserMoney-->CExpert:True ( :: m_init_phase = INIT_PHASE_TUNING ) or False
+deactivate CUserMoney
+
+
+CExpert ->CUserMoney::: m_money.EveryTick ( m_every_tick )\n:: m_money.Magic  ( m_magic )
+activate CUserMoney
+note over CUserMoney://void CExpertBase::EveryTick ( . )\nvoid CExpertBase::Magic ( . )//
+deactivate CUserMoney
+CExpert-->Expert:True or False
+deactivate CExpert
+
+Expert->CUserMoney://set ::money parameters es.//\n**input** double **Money_FixLot_Percent** = 10.0\n**input** double **Money_FixLot_Lots** = 0.1
+activate CUserMoney
+note over CUserMoney:methods of setting adjustable parameters\n\n**money**.Percent ( **Money_FixLot_Percent** )\n**money**.Lots ( **Money_FixLot_Lots** )
+deactivate CUserMoney
+
+note over Expert:<align:center>**Check all trading\nobjects parameters**</align>
+Expert->CExpert:ExtExpert.ValidationSettings ()
+activate CExpert
+CExpert->CExpert:CExpertBase::ValidationSettings ( )
+activate CExpert
+#note over CExpert://CExpertBase::ValidationSettings ( )
+note over CExpert:check the initialization phase
+CExpert-->Expert:False ( check FAIL )
+CExpert->CExpert:m_init_phase = INIT_PHASE_VALIDATION
+deactivate CExpert
+
+CExpert->CExpertSignal::: m_signal.ValidationSettings ( )
+activate CExpertSignal
+CExpertSignal->CExpert:CExpertBase::ValidationSettings ( )
+activate CExpert
+#note over CExpert://CExpertBase::ValidationSettings ( )
+
+note over CExpert:check the initialization phase
+CExpert-->Expert:False ( check FAIL )
+CExpert->CExpert:m_init_phase = INIT_PHASE_VALIDATION
+CExpert-->CExpertSignal:True
+deactivate CExpert
+
+#CExpertSignal->CExpertSignal:CExpertBase::ValidationSettings ( )
+#activate CExpertSignal
+#note over CExpertSignal:check the initialization phase :\nm_init_phase = INIT_PHASE_VALIDATION
+#deactivate CExpertSignal
+
+
+loop  x = 0; x < ::m_filters.Total ( ); x ++  
+    CExpertSignal->CExpertSignal: * _filter = :: m_filters.At ( x )
+    CExpertSignal->CUserSignal:_filter.ValidationSettings ( )
+    activate CUserSignal
+	
+    
+      note over CUserSignal:es.:\n_filter of class **CSignalMA**
+      CUserSignal->CExpertSignal://validation settings of additional filters ://\nCExpertSignal::ValidationSettings  )
+    activate CExpertSignal
+      CExpertSignal-->CUserSignal:True or False
+      #CUserSignal-->CExpert:
+    deactivate CExpertSignal
+    note over CUserSignal://initial data checks
+    CUserSignal->CUserSignal:if ( m_ma_period <= 0 )\n\nError : "period MA must be greater than 0"
+    CExpertSignal<--CUserSignal:True or False
+    deactivate CUserSignal
+    
+end
+CExpertSignal-->CExpert:True or False
+CExpert-->Expert:False ( validation FAIL )
+deactivate CExpertSignal
+
+CExpert->CUserTrailing::: m_trailing.ValidationSettings  ( )
+activate CUserTrailing
+note over CUserTrailing://CExpertBase::ValidationSettings ( )
+CUserTrailing-->CExpert:True or False
+deactivate CUserTrailing
+CExpert-->Expert:False ( validation FAIL )
+
+CExpert->CUserMoney::: m_money.ValidationSettings ( )
+activate CUserMoney
+#note over CUserMoney:CExpertMoney::ValidationSettings()
+note over CUserMoney:CExpertBase::ValidationSettings()
+CUserMoney-->CExpert:False (validation FAIL )
+CExpert-->Expert:False (validation FAIL )
+note over CUserMoney:initial data checks\n ( CExpertMoney )
+CUserMoney->CUserMoney:if ( m_percent<0.0 ||\nm_percent > 100.0 )\n\nError: "percentage of risk\nshould be in the range\nfrom 0 to 100 inclusive"
+CUserMoney-->CExpert:False (validation FAIL )
+
+note over CUserMoney:initial data checks\n ( CMoneyFixedLot )
+
+CUserMoney->CUserMoney:if ( m_lots < m_symbol.LotsMin ( ) . . . \nError :\nlots amount must be\n in the range from\n LotsMin / LotsMax
+CUserMoney-->CExpert:False (validation FAIL )
+CUserMoney->CUserMoney:if ( MathAbs ( m_lots /\nm_symbol.LotsStep ( ) . . .\nError :\nlots amount is not\ncorresponding with lot step
+CUserMoney-->CExpert:True or False (validation FAIL )
+CExpert-->Expert:True or False (validation FAIL )
+deactivate CUserMoney
+
+deactivate CExpert
+note over Expert:<align:center>**Tuning of all\nnecessary indicators**</align>
+Expert->CExpert://segue : ExtExpert.InitIndicators ( ) ...//
+
+
+note over CExpert:<align:center>                                                    \n\n\n.................... 

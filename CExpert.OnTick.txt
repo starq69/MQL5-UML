@@ -1,0 +1,163 @@
+title Expert OnTick ( ) event
+
+participant CExpertBase
+participant CSymbolInfo
+participant CExpert
+participant "**My_CExpert**" as My_Expert
+participant "//**inputs**// for expert//" as Expert
+participant "**My_Signal**" as My_Signal
+participant CExpertSignal
+
+note over Expert://\// Global expert object\nMy_CExpert **ExtExpert**;
+note over Expert:<size:16>**OnTick ( )**
+
+Expert->CExpert:<align:center>ExtExpert.**OnTick ( )**\n( I assume No My_CExpert::OnTick() override )
+activate CExpert
+
+CExpert-->Expert:False ( if NOT **::m_on_tick_process** )
+note over Expert://return//
+
+
+CExpert->CExpert:<size:14>**::Refresh ( )**
+activate CExpert
+note over CExpert: //+ refresh rates//
+#note over CExpertBase:m_symbol
+CExpert->CSymbolInfo:<size:14>**::m_symbol**.RefreshRates ( )
+activate CSymbolInfo
+
+CSymbolInfo-->CExpert:return ( //**SymbolInfoTick** ( m_name, <size:16>**m_tick**</size> ) )//
+deactivate CSymbolInfo
+
+CExpert-->Expert://False if SymbolInfoTick ( ) FAIL//
+
+note over Expert://return//
+
+note over CExpert://+ check need processing\n\nTimeToStruct ( m_symbol.Time ( ), time );\nif ( m_period_flags != WRONG_VALUE && m_period_flags != 0 )\n  if ( ( m_period_flags & TimeframesFlags ( time ) ) == 0 )\n    return ( false );\n**m_last_tick_time = time**;
+
+CExpert->CExpert:<align center><size:14>**::m_indicators**.Refresh ( )</size>\n//int CIndicators::Refresh ( void )//
+#note left of CExpert://int CIndicators::Refresh ( void )//
+CExpert-->CExpert:True
+deactivate CExpert
+
+CExpert->CExpert:<align:center><size:14>**::Processing ( )**\n( can be overrided by My_CExpert )
+activate CExpert
+CExpert->CExpertSignal:<align:center>//Detecting the "weighted" direction//\n++**//::m_signal.SetDirection ( )//  { m_direction = ::Direction ( ); }
+
+activate CExpertSignal
+	#note over CExpertSignal:<align:center>//Detecting the\n"weighted" direction//
+    CExpertSignal->My_Signal:++**::LongCondition ( )
+    activate My_Signal
+    	note over My_Signal:
+        My_Signal-->CExpertSignal:
+    deactivate My_Signal
+    CExpertSignal->My_Signal:++**::ShortCondition ( )
+    activate My_Signal
+    	note over My_Signal:
+        My_Signal-->CExpertSignal:
+    deactivate My_Signal
+    
+    
+	#activate CExpertSignal	
+    #deactivate CExpertSignal
+    
+	CExpert<--CExpertSignal:
+deactivate CExpertSignal
+
+note over CExpert: <align:center>check if open positions\n++**::SelectPosition ( )**
+
+alt ::SelectPosition ( ) == True
+	note over CExpert: <align:center>check the possibility of reverse the position\n++**::CheckReverse ( )**
+	alt ::CheckReverse ( ) == True
+    	CExpert-->CExpert:True
+        ##
+        deactivate CExpert
+    else CheckReverse ( ) == False
+    	##
+        activate CExpert
+    	note over CExpert:<align:center>check the possibility of closing the position/delete pending orders\n++**::CheckClose ( )**
+        alt NOT CheckClose ( )
+        	note over CExpert:<align:center>check the possibility of modifying the position\n++**::CheckTrailingStop ( )**
+       		alt 
+            	#note over CExpert: if ( CheckTrailingStop ( ) ) 
+            	CExpert-->CExpert: if ( CheckTrailingStop ( ) )\n  return ( true )
+                ##
+                deactivate CExpert
+        	end
+            ##
+            activate CExpert
+         else 
+            	CExpert-->CExpert:False ( return without operations )
+                ##
+                deactivate CExpert
+            end
+            ##
+            activate CExpert
+    	end
+	end
+end
+##
+##activate CExpert
+loop for ( int i = OrdersTotal ( ) - 1; i >= 0; i-- )
+	CExpert->CExpert:++**::m_order**.SelectByIndex ( i )
+    note over CExpert:check ::m_order.OrderType ( )
+	alt ORDER_TYPE_BUY_LIMIT OR ORDER_TYPE_BUY_STOP
+    	note over CExpert:<align:center>check the ability to delete a pending order to buy\n++**::CheckDeleteOrderLong ( )**
+      alt 
+      	#note over CExpert:if ( CheckDeleteOrderLong ( ) )
+          CExpert-->CExpert:if ( CheckDeleteOrderLong ( ) )\n  return ( true )
+          ##
+          deactivate CExpert
+      end
+      ##
+      activate CExpert
+      note over CExpert:<align:center>check the possibility of modifying a pending order to buy\n++**::CheckTrailingOrderLong ( )
+
+      alt 
+      	#note over CExpert:if ( CheckTrailingOrderLong ( ) )
+          CExpert-->CExpert:if ( CheckTrailingOrderLong ( ) )\n  return ( true )
+          ##
+          deactivate CExpert
+      end
+      ##
+      activate CExpert
+    else 
+    	note over CExpert:<align:center>check the ability to delete a pending order to sell\n++**::CheckDeleteOrderShort ( )
+              alt
+              ##note over CExpert:if ( CheckDeleteOrderShort ( ) )
+          CExpert-->CExpert:if ( CheckDeleteOrderShort ( ) )\n  return ( true )
+          ##
+          deactivate CExpert
+      end
+      ##
+      activate CExpert
+      note over CExpert:<align:center>check the possibility of modifying a pending order to sell\n++**::CheckTrailingOrderSell ( )
+
+      alt
+      ##note over CExpert:if ( CheckTrailingOrderSell ( ) )
+          CExpert-->CExpert:if ( CheckTrailingOrderSell ( )\n  return ( true )
+          ##
+          deactivate CExpert
+      end
+      ##
+      activate CExpert 
+	end
+    CExpert-->CExpert: False ( return without operations )
+    ##
+	deactivate CExpert
+end
+
+##
+activate CExpert
+
+note over CExpert:<align:center>check the possibility of opening a position/setting pending order\n++**::CheckOpen ( )**
+alt 
+	#note over CExpert:if ( CheckOpen ( ) )
+    CExpert-->CExpert:if ( CheckOpen ( ) )\n  return ( true )
+    ##
+    deactivate CExpert
+end
+activate CExpert
+CExpert-->CExpert:False ( return without operations )
+deactivate CExpert
+CExpert-->Expert:
+deactivate CExpert
